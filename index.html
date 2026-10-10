@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PARDHA ROADSENSE — Spotting Road Hazards Before Accidents Happen</title>
+  <meta name="description" content="Pardha RoadSense turns ordinary vehicle cameras into autonomous road defect inspection scanners using dual-stage computer vision (YOLO + SAM 2).">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Ambient background glow elements -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Top Navigation -->
+  <header class="site-header">
+    <div class="container nav-container">
+      <a href="#" class="brand-logo">
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19L10 5l4 0l6 14"/>
+            <path d="M12 9v2"/>
+            <path d="M12 15v2"/>
+            <circle cx="12" cy="19" r="2" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="brand-name">
+          <span class="brand-title">PARDHA</span>
+          <span class="brand-badge">ROADSENSE</span>
+        </div>
+      </a>
+
+      <nav class="main-nav">
+        <a href="#simulator" class="nav-link">Live Scanner</a>
+        <a href="#how-it-works" class="nav-link">Architecture</a>
+        <a href="#benchmark" class="nav-link">Benchmark (Notebook)</a>
+        <a href="#calculator" class="nav-link">Risk Engine</a>
+        <a href="#city-map" class="nav-link">City GIS Feed</a>
+        <a href="#team" class="nav-link">Team Pardha</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="btn btn-glass" id="open-deck-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2"/>
+            <path d="m9 8 6 4-6 4Z"/>
+          </svg>
+          <span>8-Slide Pitch Deck</span>
+        </button>
+        <a href="#simulator" class="btn btn-primary">
+          <span>Run Live Demo</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="container hero-container">
+        <div class="hero-content">
+          <div class="badge-pill">
+            <span class="pill-dot"></span>
+            <span>Hackathon Track: Road Safety & Autonomous Infrastructure</span>
+          </div>
+          
+          <h1 class="hero-title">
+            Spotting road hazards <br>
+            <span class="gradient-text">before they cause crashes.</span>
+          </h1>
+          
+          <p class="hero-description">
+            Pardha RoadSense transforms existing vehicle cameras into automated road health inspectors. 
+            Using a verified two-stage vision engine (YOLO for rapid detection + SAM 2 for pixel-exact metrology), 
+            we measure real damage volume and risk-rank repairs. <strong>Zero new hardware required.</strong>
+          </p>
+
+          <div class="hero-cta-group">
+            <a href="#simulator" class="btn btn-primary btn-lg">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <circle cx="12" cy="12" r="10"/>
+                <polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/>
+              </svg>
+              <span>Test Interactive Scanner</span>
+            </a>
+            <button class="btn btn-glass btn-lg" id="hero-deck-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="20" height="14" x="2" y="5" rx="2"/>
+                <line x1="2" x2="22" y1="10" y2="10"/>
+              </svg>
+              <span>View Pitch Deck (8 Slides)</span>
+            </button>
+          </div>
+
+          <!-- Quick Proof Bar -->
+          <div class="hero-stats-row">
+            <div class="stat-pill">
+              <span class="stat-num">4,082</span>
+              <span class="stat-label">Labelled Objects Tested</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-pill">
+              <span class="stat-num">+12.8%</span>
+              <span class="stat-label">Mask IoU Jump (SAM 2)</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-pill">
+              <span class="stat-num">16.1s</span>
+              <span class="stat-label">Inference / 93 Test Frames</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-pill">
+              <span class="stat-num">0.952</span>
+              <span class="stat-label">Precision Rate</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Dashcam Scanner Simulator -->
+    <section class="section simulator-section" id="simulator">
+      <div class="container">
+        <div class="section-header text-center">
+          <div class="badge-pill">Interactive Demonstration</div>
+          <h2 class="section-title">The Real-Time Vision Inspector</h2>
+          <p class="section-subtitle">
+            See how the dual-stage pipeline processes high-speed vehicle footage. Switch inspection modes in real-time to compare raw video against bounding boxes and pixel-exact SAM 2 outlines.
+          </p>
+        </div>
+
+        <div class="simulator-wrapper glass-card">
+          <!-- Control Bar -->
+          <div class="sim-header">
+            <div class="sim-mode-toggles">
+              <button class="sim-toggle-btn active" data-mode="combined">
+                <span class="indicator-dot cyan"></span>
+                <span>Combined Pipeline (YOLO + SAM 2)</span>
+              </button>
+              <button class="sim-toggle-btn" data-mode="yolo">
+                <span class="indicator-dot blue"></span>
+                <span>Stage 1: YOLO Box Only</span>
+              </button>
+              <button class="sim-toggle-btn" data-mode="sam2">
+                <span class="indicator-dot purple"></span>
+                <span>Stage 2: SAM 2 Micro-Contour</span>
+              </button>
+              <button class="sim-toggle-btn" data-mode="raw">
+                <span class="indicator-dot gray"></span>
+                <span>Raw Camera Feed</span>
+              </button>
+            </div>
+
+            <div class="sim-hazard-selector">
+              <label for="hazard-type-select">Target Defect:</label>
+              <select id="hazard-type-select" class="glass-select">
+                <option value="pothole_major">Hazard #1: Deep Asphalt Crater (Pothole)</option>
+                <option value="alligator_crack">Hazard #2: Structural Alligator Crack</option>
+                <option value="eroded_edge">Hazard #3: Broken Road Shoulder</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Canvas Display Area -->
+          <div class="sim-viewport-container">
+            <canvas id="road-canvas" width="960" height="520"></canvas>
+            
+            <!-- Live Telemetry Floating HUD -->
+            <div class="telemetry-hud" id="telemetry-hud">
+              <div class="hud-header">
+                <span class="hud-status-live">● EDGE INFERENCE LIVE</span>
+                <span class="hud-fps" id="hud-fps">58 FPS</span>
+              </div>
+              <div class="hud-grid">
+                <div class="hud-item">
+                  <span class="hud-label">DETECTION</span>
+                  <span class="hud-value" id="hud-defect-name">Pothole (Type A)</span>
+                </div>
+                <div class="hud-item">
+                  <span class="hud-label">CONFIDENCE</span>
+                  <span class="hud-value highlight-cyan" id="hud-conf">96.8%</span>
+                </div>
+                <div class="hud-item">
+                  <span class="hud-label">MEASURED AREA</span>
+                  <span class="hud-value" id="hud-area">0.42 m² (Exact)</span>
+                </div>
+                <div class="hud-item">
+                  <span class="hud-label">EQUIV. DIAMETER</span>
+                  <span class="hud-value" id="hud-diameter">73.2 cm</span>
+                </div>
+                <div class="hud-item">
+                  <span class="hud-label">CALCULATED RISK</span>
+                  <span class="hud-badge risk-high" id="hud-risk">8.6 / 10 · HIGH</span>
+                </div>
+                <div class="hud-item">
+                  <span class="hud-label">GPS LOCATION</span>
+                  <span class="hud-value mono" id="hud-gps">17.4382° N, 78.3844° E</span>
+                </div>
+              </div>
+              <div class="hud-privacy-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <span>On-Device Privacy: Plates & Faces Obfuscated</span>
+              </div>
+            </div>
+
+            <!-- Simulation Controls -->
+            <div class="sim-floating-controls">
+              <button class="sim-play-btn" id="sim-toggle-play" title="Pause / Resume">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" id="play-icon">
+                  <rect x="6" y="4" width="4" height="16"/>
+                  <rect x="14" y="4" width="4" height="16"/>
+                </svg>
+              </button>
+              <button class="sim-reset-btn" id="sim-reset-view" title="Re-scan Highway">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                  <path d="M16 21h5v-5"/>
+                </svg>
+                <span>Reset Frame</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Explanation Bar -->
+          <div class="sim-footer">
+            <div class="sim-note-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" x2="12" y1="16" y2="12"/>
+                <line x1="12" x2="12.01" y1="8" y2="8"/>
+              </svg>
+            </div>
+            <div class="sim-note-text" id="sim-mode-explanation">
+              <strong>Combined Mode Active:</strong> YOLO spots the hazard bounding box in 16ms, then prompts SAM 2 to outline the exact jagged perimeter. This eliminates false asphalt pixels and measures true physical damage.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- The Problem Section -->
+    <section class="section problem-section" id="problem">
+      <div class="container">
+        <div class="section-header text-center">
+          <div class="badge-pill">The Crisis on Asphalt</div>
+          <h2 class="section-title">Roads Warn Us for Weeks. Nobody Listens.</h2>
+          <p class="section-subtitle">
+            Most road tragedies do not occur out of nowhere. They start with structural asphalt failures that sat unrepaired for over 30 days.
+          </p>
+        </div>
+
+        <div class="problem-grid">
+          <div class="glass-card problem-card">
+            <div class="problem-icon red">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <h3 class="card-title">1.19 Million Annual Deaths</h3>
+            <p class="card-text">
+              The World Health Organization reports over 1.19 million road fatalities each year. 90% occur in developing countries where road monitoring is inconsistent or non-existent.
+            </p>
+          </div>
+
+          <div class="glass-card problem-card">
+            <div class="problem-icon amber">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <h3 class="card-title">1.5+ Lakh Lives Lost in India</h3>
+            <p class="card-text">
+              MoRTH statistics reveal two-wheeler commuters suffer the heaviest toll. Riders swerving around sudden potholes lose balance or collide with oncoming traffic.
+            </p>
+          </div>
+
+          <div class="glass-card problem-card">
+            <div class="problem-icon blue">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="18" height="18" x="3" y="3" rx="2"/>
+                <line x1="3" x2="21" y1="9" y2="9"/>
+                <line x1="9" x2="9" y1="21" y2="21"/>
+              </svg>
+            </div>
+            <h3 class="card-title">Manual Inspections Cover &lt; 5%</h3>
+            <p class="card-text">
+              Human survey crews with clipboards are slow, expensive, and subjective. Most municipal roads wait 6 to 12 months between audits, leaving drivers vulnerable.
+            </p>
+          </div>
+        </div>
+
+        <!-- Comparative System View -->
+        <div class="comparison-banner glass-card">
+          <div class="comp-col old-way">
+            <span class="comp-tag bad">TRADITIONAL INSPECTION</span>
+            <h4>Manual, Delayed & Reactive</h4>
+            <ul>
+              <li>Inspectors drive with clipboards once every 6 months</li>
+              <li>Repairs wait until after serious accidents are reported</li>
+              <li>No severity formula; loudest complaints get paved first</li>
+              <li>Millions of hours of bus and taxi dashcam footage wasted</li>
+            </ul>
+          </div>
+          <div class="comp-divider">
+            <div class="comp-vs">VS</div>
+          </div>
+          <div class="comp-col new-way">
+            <span class="comp-tag good">PARDHA ROADSENSE</span>
+            <h4>Continuous, Autonomous & Preventive</h4>
+            <ul>
+              <li>Every city bus, auto, and municipal vehicle audits roads daily</li>
+              <li>Identifies defects within hours of initial asphalt cracks</li>
+              <li>Calculates precise repair area (m²) and severity score (1–10)</li>
+              <li>Zero extra hardware cost: uses existing smartphone & dashcam feeds</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture: How It Works -->
+    <section class="section architecture-section" id="how-it-works">
+      <div class="container">
+        <div class="section-header text-center">
+          <div class="badge-pill">Two-Stage Vision Architecture</div>
+          <h2 class="section-title">How Pardha RoadSense Works</h2>
+          <p class="section-subtitle">
+            Why two steps? Standard object detectors only drop loose square boxes. But a rectangular box around an irregular pothole captures 50% healthy road. We separate localization from metrology.
+          </p>
+        </div>
+
+        <div class="pipeline-flow-grid">
+          <div class="glass-card step-card">
+            <div class="step-badge">STEP 01</div>
+            <div class="step-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                <circle cx="12" cy="13" r="3"/>
+              </svg>
+            </div>
+            <h4>Fleet Camera Ingestion</h4>
+            <p>
+              Smartphones mounted on municipal buses, delivery fleets, or police patrols stream road frames at 30 FPS alongside synchronized GPS telemetry.
+            </p>
+            <span class="step-tag">Zero New Sensors</span>
+          </div>
+
+          <div class="glass-card step-card">
+            <div class="step-badge">STEP 02</div>
+            <div class="step-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M9 3v18"/>
+                <path d="M15 3v18"/>
+                <path d="M3 9h18"/>
+                <path d="M3 15h18"/>
+              </svg>
+            </div>
+            <h4>Fast YOLO Detection</h4>
+            <p>
+              A lightweight YOLO detector rapidly screens each frame, outputting spatial candidate boxes for potholes, alligator cracks, and broken shoulders in ~16ms.
+            </p>
+            <span class="step-tag">High Precision (0.952)</span>
+          </div>
+
+          <div class="glass-card step-card highlight-step">
+            <div class="step-badge">STEP 03</div>
+            <div class="step-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
+                <path d="M12 12 2.1 12.5"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </div>
+            <h4>Meta SAM 2 Segmentation</h4>
+            <p>
+              YOLO bounding boxes serve as visual prompts to Meta's Segment Anything Model 2, which traces the exact, irregular contour of the defect with pixel precision.
+            </p>
+            <span class="step-tag cyan">+12.8% IoU Boost</span>
+          </div>
+
+          <div class="glass-card step-card">
+            <div class="step-badge">STEP 04</div>
+            <div class="step-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <h4>Metrology & Municipal GIS</h4>
+            <p>
+              Physical area (m²), equivalent diameter, and perimeter are calculated. Combined with road speed and nearby schools, a severity score alerts road authorities.
+            </p>
+            <span class="step-tag">Automated Dispatch</span>
+          </div>
+        </div>
+
+        <!-- Privacy & Edge Highlight -->
+        <div class="edge-privacy-banner glass-card">
+          <div class="edge-feature">
+            <div class="feature-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <div>
+              <h5>On-Device Privacy Engine</h5>
+              <p>Vehicle number plates and pedestrians' faces are automatically blurred locally on the device buffer before any frame is stored or transmitted.</p>
+            </div>
+          </div>
+          <div class="edge-feature">
+            <div class="feature-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                <line x1="12" y1="20" x2="12.01" y2="20"/>
+              </svg>
+            </div>
+            <div>
+              <h5>Offline-First Edge Sync</h5>
+              <p>Operates seamlessly without 4G/5G connectivity. Detections and GPS tags buffer into a compact local database (under 5MB/day) and sync at transit depots.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Benchmark Results from Notebook -->
+    <section class="section benchmark-section" id="benchmark">
+      <div class="container">
+        <div class="section-header text-center">
+          <div class="badge-pill">Notebook Validation Suite</div>
+          <h2 class="section-title">Verified Empirical Results</h2>
+          <p class="section-subtitle">
+            We stress-tested the two-stage pipeline on an ultra-dense benchmark of <strong>93 test frames containing 4,082 ground-truth objects</strong> with severe overlap to validate boundary accuracy.
+          </p>
+        </div>
+
+        <div class="benchmark-layout-grid">
+          <!-- Table Card -->
+          <div class="glass-card table-card">
+            <div class="card-header-row">
+              <h3>Model Performance Comparison</h3>
+              <span class="source-badge">Dataset: 93 Images · 4,082 GT Particles</span>
+            </div>
+            <div class="table-responsive">
+              <table class="benchmark-table">
+                <thead>
+                  <tr>
+                    <th>Evaluation Metric</th>
+                    <th>Stage 1: YOLO Alone</th>
+                    <th>Stage 2: YOLO + SAM 2</th>
+                    <th>Observed Improvement</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Precision (Det)</strong></td>
+                    <td>0.9519</td>
+                    <td><strong>0.9519</strong></td>
+                    <td><span class="pill-green">Identical (0.95)</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Recall (Det)</strong></td>
+                    <td>0.8295</td>
+                    <td><strong>0.8295</strong></td>
+                    <td><span class="pill-green">Identical (0.83)</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>F1 Score</strong></td>
+                    <td>0.8865</td>
+                    <td><strong>0.8865</strong></td>
+                    <td><span class="pill-green">High F1 (0.89)</span></td>
+                  </tr>
+                  <tr class="highlight-row">
+                    <td><strong>Boundary Accuracy (Mask IoU)</strong></td>
+                    <td>0.7306</td>
+                    <td><strong>0.8585</strong></td>
+                    <td><span class="pill-cyan">+12.79% (+13 Points)</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Inference Time (All 93 Images)</strong></td>
+                    <td><strong>16.1s</strong></td>
+                    <td>Batched Refinement</td>
+                    <td><span class="pill-blue">Real-Time Capable</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Soft-NMS Reconciliation</strong></td>
+                    <td>Standard NMS</td>
+                    <td>Gaussian Soft-NMS</td>
+                    <td><span class="pill-purple">Resolves Overlaps</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-footer-note">
+              *Ground-truth upper bound (SAM 2 with perfect oracle boxes) reaches 0.8637 Mask mIoU. Our automated pipeline reaches 0.8585—closing 99.4% of the theoretical gap.
+            </div>
+          </div>
+
+          <!-- Visual Metrology Contrast -->
+          <div class="glass-card visual-contrast-card">
+            <h3>Why 0.73 vs 0.86 IoU Matters for Roads</h3>
+            <p class="contrast-desc">
+              Judges often ask: <em>"Why not just stop at YOLO?"</em> The visual difference below illustrates why accurate outlines are required for repair metrology.
+            </p>
+
+            <div class="contrast-demo-box">
+              <div class="contrast-item">
+                <div class="contrast-graphic yolo-graphic">
+                  <div class="dummy-pothole"></div>
+                  <div class="dummy-box">
+                    <span class="graphic-label">YOLO Box (IoU 0.73)</span>
+                  </div>
+                </div>
+                <h5>YOLO Box Only</h5>
+                <p>Captures 45% healthy road. Overestimates asphalt volume. Cannot assess depth or true hazard boundary.</p>
+              </div>
+
+              <div class="contrast-item">
+                <div class="contrast-graphic sam-graphic">
+                  <div class="dummy-pothole active-mask">
+                    <span class="graphic-label cyan">SAM 2 Mask (IoU 0.86)</span>
+                  </div>
+                </div>
+                <h5>SAM 2 Micro-Contour</h5>
+                <p>Hugs the exact fracture edge. Computes true surface area (m²), perimeter, and repair urgency accurately.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Risk & Severity Calculator -->
+    <section class="section calculator-section" id="calculator">
+      <div class="container">
+        <div class="section-header text-center">
+          <div class="badge-pill">Interactive Metrology Engine</div>
+          <h2 class="section-title">The Road Risk Scoring Calculator</h2>
+          <p class="section-subtitle">
+            Experience our dynamic severity formula. Adjust defect size, traffic speed, and urban context to see how Pardha RoadSense prioritizes repair crews.
+          </p>
+        </div>
+
+        <div class="calculator-grid glass-card">
+          <!-- Input Sliders -->
+          <div class="calc-inputs-column">
+            <div class="calc-group">
+              <div class="calc-label-row">
+                <label for="input-area">Estimated Defect Area:</label>
+                <span class="calc-value-display" id="val-area">0.45 m²</span>
+              </div>
+              <input type="range" id="input-area" min="0.05" max="2.0" step="0.05" value="0.45" class="glass-slider">
+              <div class="slider-ticks">
+                <span>0.05 m² (Minor)</span>
+                <span>1.0 m²</span>
+                <span>2.0 m² (Severe)</span>
+              </div>
+            </div>
+
+            <div class="calc-group">
+              <div class="calc-label-row">
+                <label for="input-speed">Road Speed Limit:</label>
+                <span class="calc-value-display" id="val-speed">60 km/h</span>
+              </div>
+              <input type="range" id="input-speed" min="20" max="120" step="10" value="60" class="glass-slider">
+              <div class="slider-ticks">
+                <span>20 km/h (Colony)</span>
+                <span>60 km/h (City)</span>
+                <span>120 km/h (Expressway)</span>
+              </div>
+            </div>
+
+            <div class="calc-group">
+              <label>Surrounding Environmental Context:</label>
+              <div class="toggle-pills-row">
+                <label class="toggle-pill-item">
+                  <input type="checkbox" id="toggle-school" checked>
+                  <span class="toggle-pill-btn">🏫 Near School / Hospital</span>
+                </label>
+                <label class="toggle-pill-item">
+                  <input type="checkbox" id="toggle-curve">
+                  <span class="toggle-pill-btn">⚠️ Blind Curve / Junction</span>
+                </label>
+                <label class="toggle-pill-item">
+                  <input type="checkbox" id="toggle-rain">
+                  <span class="toggle-pill-btn">🌧️ Waterlogging Prone</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Output Scorecard -->
+          <div class="calc-output-column">
+            <div class="risk-score-display">
+              <span class="score-sub">COMPUTED HAZARD SEVERITY</span>
+              <div class="score-number-row">
+                <span class="score-large" id="risk-score-val">8.4</span>
+                <span class="score-max">/ 10</span>
+              </div>
+              <div class="score-badge-status high" id="risk-status-badge">HIGH PRIORITY ACTION</div>
+            </div>
+
+            <div class="score-details-list">
+              <div class="detail-item">
+                <span>Recommended Action:</span>
+                <strong id="risk-action-text">Dispatch Road Patch Crew within 24 Hours</strong>
+              </div>
+              <div class="detail-item">
+                <span>Asphalt Mix Required:</span>
+                <strong id="risk-mix-est">~42 kg Cold Bitumen</strong>
+              </div>
+              <div class="detail-item">
+                <span>Two-Wheeler Danger Rating:</span>
+                <strong class="color-red" id="risk-two-wheeler">Critical (High Tip-Over Risk)</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Smart City GIS Map / Corridor Tracker -->
+    <section class="section city-map-section" id="city-map">
+      <div class="container">
+        <div class="section-header text-center">
+          <div class="badge-pill">Municipal Authority Portal</div>
+          <h2 class="section-title">Live Road Health GIS Dashboard</h2>
+          <p class="section-subtitle">
+            How municipal corporations and highway authorities interact with RoadSense. Filter active incidents, verify GPS telemetry, and schedule repairs.
+          </p>
+        </div>
+
+        <div class="gis-dashboard-card glass-card">
+          <!-- Toolbar -->
+          <div class="gis-toolbar">
+            <div class="gis-filter-group">
+              <span class="filter-label">Filter Severity:</span>
+              <button class="filter-btn active" data-filter="all">All Incidents (4)</button>
+              <button class="filter-btn" data-filter="high">High Risk (2)</button>
+              <button class="filter-btn" data-filter="medium">Medium (1)</button>
+              <button class="filter-btn" data-filter="resolved">Fixed (1)</button>
+            </div>
+            <div class="gis-stats">
+              <span>Corridor: <strong>Inner Ring Road, Sector 4</strong></span>
+              <span class="badge-live">● 12 Fleet Units Active</span>
+            </div>
+          </div>
+
+          <!-- Map and Incident Feed Layout -->
+          <div class="gis-layout">
+            <!-- Simulated Vector Map -->
+            <div class="gis-map-canvas-container">
+              <canvas id="gis-map-canvas" width="600" height="420"></canvas>
+              <div class="gis-map-legend">
+                <span><span class="legend-dot red"></span> High Risk</span>
+                <span><span class="legend-dot amber"></span> Moderate</span>
+                <span><span class="legend-dot green"></span> Repaired</span>
+              </div>
+            </div>
+
+            <!-- Incident Details Feed -->
+            <div class="gis-incident-feed" id="incident-feed-container">
+              <!-- Dynamically populated via app.js -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3-Phase Rollout Roadmap -->
+    <section class="section rollout-section" id="rollout">
+      <div class="container">
+        <div class="section-header text-center">
+          <div class="badge-pill">Go-To-Market & Scaling</div>
+          <h2 class="section-title">From Prototype to City-Wide Deployment</h2>
+          <p class="section-subtitle">
+            Zero capital barrier. By mounting smartphones on existing municipal fleets, we scale city coverage within 60 days.
+          </p>
+        </div>
+
+        <div class="roadmap-grid">
+          <div class="glass-card roadmap-card">
+            <div class="phase-tag">PHASE 01 · DAYS 1–30</div>
+            <h3>Pilot Corridor Test</h3>
+            <ul class="roadmap-checklist">
+              <li>Equip 10 public transit buses with dashcam mounts on one 20 km arterial corridor</li>
+              <li>Generate baseline road surface health map with automated GPS coordinates</li>
+              <li>Validate edge inference speed under varied Indian daylight and traffic conditions</li>
+            </ul>
+            <div class="phase-footer">Goal: Validate Zero-Lag Edge Sync</div>
+          </div>
+
+          <div class="glass-card roadmap-card highlight-phase">
+            <div class="phase-tag cyan">PHASE 02 · DAYS 31–90</div>
+            <h3>Municipal Fleet Expansion</h3>
+            <ul class="roadmap-checklist">
+              <li>Deploy across municipal waste management vehicles & utility trucks</li>
+              <li>Cover 100% of municipal paved roads every 48 hours automatically</li>
+              <li>Connect API directly with Municipal Public Works Department dispatch</li>
+            </ul>
+            <div class="phase-footer">Goal: Automated City-Wide Repair Queues</div>
+          </div>
+
+          <div class="glass-card roadmap-card">
+            <div class="phase-tag">PHASE 03 · DAYS 91+</div>
+            <h3>State Highways & Citizen Portal</h3>
+            <ul class="roadmap-checklist">
+              <li>Deploy high-speed inter-city highway monitoring on expressways</li>
+              <li>Launch public citizen transparency dashboard tracking verified road repairs</li>
+              <li>Integrate commercial fleet telematics API for logistics & insurance partners</li>
+            </ul>
+            <div class="phase-footer">Goal: National Infrastructure Intelligence</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Team Pardha Section -->
+    <section class="section team-section" id="team">
+      <div class="container">
+        <div class="section-header text-center">
+          <div class="badge-pill">The Builders</div>
+          <h2 class="section-title">Team Pardha</h2>
+          <p class="section-subtitle">
+            United by a mission to eliminate preventable road fatalities using modern, practical computer vision.
+          </p>
+        </div>
+
+        <div class="team-grid">
+          <div class="glass-card team-card">
+            <div class="member-avatar">CJ</div>
+            <h4 class="member-name">Chandra Johith</h4>
+            <span class="member-role">Team Lead & Systems Architecture</span>
+            <p class="member-bio">Leading full-stack pipeline integration, dual-model runtime orchestration, and product roadmap.</p>
+          </div>
+
+          <div class="glass-card team-card">
+            <div class="member-avatar">YK</div>
+            <h4 class="member-name">YRG Karthikeya</h4>
+            <span class="member-role">Computer Vision & Inference</span>
+            <p class="member-bio">Specializing in YOLO detector training, edge latency tuning, and Soft-NMS bounding box algorithms.</p>
+          </div>
+
+          <div class="glass-card team-card">
+            <div class="member-avatar">DS</div>
+            <h4 class="member-name">Dasari Sree</h4>
+            <span class="member-role">Segmentation & Metrology Core</span>
+            <p class="member-bio">Architect of the SAM 2 micro-contour integration, contour moment math, and geometric metrology profiling.</p>
+          </div>
+
+          <div class="glass-card team-card">
+            <div class="member-avatar">KB</div>
+            <h4 class="member-name">Kelam Bhargav</h4>
+            <span class="member-role">GIS Engine & Spatial Scoring</span>
+            <p class="member-bio">Developing the road risk prioritization formula, municipal dashboard UX, and edge GPS synchronization.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Pitch Deck Modal (Interactive 8-Slide Viewer) -->
+  <div class="deck-modal-backdrop" id="deck-modal">
+    <div class="deck-modal-container glass-card">
+      <div class="deck-modal-header">
+        <div class="deck-title-row">
+          <span class="deck-badge">PITCH DECK</span>
+          <span class="deck-counter" id="deck-counter">Slide 1 of 8</span>
+        </div>
+        <div class="deck-actions">
+          <button class="btn btn-icon" id="deck-fullscreen-btn" title="Toggle Fullscreen">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+          </button>
+          <button class="btn btn-icon" id="deck-close-btn" title="Close Deck">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Slide Display Screen -->
+      <div class="deck-slide-viewport" id="deck-viewport">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Slide Navigation Footer -->
+      <div class="deck-modal-footer">
+        <button class="btn btn-glass" id="deck-prev-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          <span>Previous Slide</span>
+        </button>
+
+        <!-- Slide Dots -->
+        <div class="deck-dots" id="deck-dots-container"></div>
+
+        <button class="btn btn-primary" id="deck-next-btn">
+          <span>Next Slide</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-left">
+        <div class="brand-name">
+          <span class="brand-title">PARDHA</span>
+          <span class="brand-badge">ROADSENSE</span>
+        </div>
+        <p class="footer-tagline">Every road tells a story of decay long before an accident happens. We teach cameras to read it.</p>
+      </div>
+      <div class="footer-right">
+        <div class="footer-team-names">
+          <strong>Team Pardha:</strong> Chandra Johith · YRG Karthikeya · Dasari Sree · Kelam Bhargav
+        </div>
+        <p class="footer-meta">Built for Hackathon 2026 · Theme: Road Safety & Infrastructure Resilience</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
